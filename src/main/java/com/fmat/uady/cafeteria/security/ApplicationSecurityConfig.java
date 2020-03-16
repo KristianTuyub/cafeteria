@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import static com.fmat.uady.cafeteria.security.ApplicationUserPermission.COURSE_WRITE;
 import static com.fmat.uady.cafeteria.security.ApplicationUserRole.*;
@@ -31,7 +32,10 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http//.disable() // 02:03:26
+        http.csrf().disable()
+//                .csrf()
+//                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()) // In order to send to the client a X-XSRF-TOKEN
+//                .and()
                 .authorizeRequests()
                 .antMatchers("/", "index", "/css/*", "/js/*").permitAll()
                 .antMatchers("/api/**").hasRole(STUDENT.name())
@@ -42,8 +46,9 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest()
                 .authenticated()
                 .and()
-                .httpBasic()
-        ;
+//                .httpBasic() // Basic Authentication
+                .formLogin() // To enable form-based authentication // 02:32:45
+                .loginPage("/login").permitAll(); // To override the default Spring's Security login page
     }
 
     @Override
@@ -57,7 +62,7 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .build();
 
         UserDetails admin_siqueiros = User.builder()
-                .username("das_siquieros")
+                .username("das_siqueiros")
                 .password(passwordEncoder.encode("1234"))
                 //.roles(ADMIN.name())
                 .authorities(ADMIN.getGrantedAuthorities())
