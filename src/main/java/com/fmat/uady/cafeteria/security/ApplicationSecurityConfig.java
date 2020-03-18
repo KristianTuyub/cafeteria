@@ -1,23 +1,19 @@
 package com.fmat.uady.cafeteria.security;
 
+import com.fmat.uady.cafeteria.auth.ApplicationUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.fmat.uady.cafeteria.security.ApplicationUserPermission.COURSE_WRITE;
 import static com.fmat.uady.cafeteria.security.ApplicationUserRole.*;
 
 @Configuration
@@ -26,10 +22,12 @@ import static com.fmat.uady.cafeteria.security.ApplicationUserRole.*;
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationUserService applicationUserService;
 
     @Autowired
-    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder) {
+    public ApplicationSecurityConfig(PasswordEncoder passwordEncoder, ApplicationUserService applicationUserService) {
         this.passwordEncoder = passwordEncoder;
+        this.applicationUserService = applicationUserService;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticated()
                 .and()
 //                  .httpBasic() // Basic Authentication
-                    .formLogin() // To enable form-based authentication // 03:00:30
+                    .formLogin() // To enable form-based authentication // 03:46:17
                     .loginPage("/login").permitAll() // To override the default Spring's Security login page
                     .defaultSuccessUrl("/courses", true)
                     .usernameParameter("username")
@@ -69,6 +67,20 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(daoAuthenticationProvider()); // In order to use our ApplicationUserService
+    }
+
+    @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder); // to allow passwords to be decoded
+        provider.setUserDetailsService(applicationUserService);
+
+        return provider;
+    }
+
+/*    @Override // As we're implementing a service that implements UserDetailsService, we remove this method
     @Bean
     protected UserDetailsService userDetailsService() {
         UserDetails jamesBondUser = User.builder()
@@ -97,5 +109,5 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 admin_siqueiros,
                 ravi_user
         );
-    }
+    }*/
 }
