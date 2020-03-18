@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
+import java.util.concurrent.TimeUnit;
+
 import static com.fmat.uady.cafeteria.security.ApplicationUserPermission.COURSE_WRITE;
 import static com.fmat.uady.cafeteria.security.ApplicationUserRole.*;
 
@@ -46,9 +48,24 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest()
                 .authenticated()
                 .and()
-//                .httpBasic() // Basic Authentication
-                .formLogin() // To enable form-based authentication // 02:32:45
-                .loginPage("/login").permitAll(); // To override the default Spring's Security login page
+//                  .httpBasic() // Basic Authentication
+                    .formLogin() // To enable form-based authentication // 03:00:30
+                    .loginPage("/login").permitAll() // To override the default Spring's Security login page
+                    .defaultSuccessUrl("/courses", true)
+                    .usernameParameter("username")
+                    .passwordParameter("password")
+                .and()
+                    .rememberMe() // Defaults cookie expiration to 2 weeks.
+                    .tokenValiditySeconds( (int) TimeUnit.DAYS.toSeconds(21)) //use tokenRepository() if we're using an external cookie db
+                    .key("secure_custom_key") // 21 days - key is to generate a md5 hash of the username and expiration time contained in the cookie
+                    .rememberMeParameter("remember-me") // Only necessary if we want to change the name field in form login to a custom one
+                .and()
+                    .logout()
+                    .logoutUrl("/logout")
+                    .clearAuthentication(true)
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID", "remember-me")
+                    .logoutSuccessUrl("/login");
     }
 
     @Override
@@ -66,19 +83,19 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .password(passwordEncoder.encode("1234"))
                 //.roles(ADMIN.name())
                 .authorities(ADMIN.getGrantedAuthorities())
-                .build(); // 1:01:00
+                .build();
 
         UserDetails ravi_user = User.builder()
                 .username("ravi")
                 .password(passwordEncoder.encode("ksquare"))
                 //.roles(ADMIN_TRAINEE.name())
                 .authorities(ADMIN_TRAINEE.getGrantedAuthorities())
-                .build(); // 1:01:00
+                .build();
 
         return new InMemoryUserDetailsManager(
                 jamesBondUser,
                 admin_siqueiros,
-                ravi_user // 1:51:13
+                ravi_user
         );
     }
 }
